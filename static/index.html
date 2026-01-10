@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>Palworld Server Control</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 Palworld Server</h1>
+            <div class="status-indicator" id="statusIndicator">
+                <span class="status-dot"></span>
+                <span>Проверка...</span>
+            </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">📊 Дашборд</button>
+            <button class="tab-btn" data-tab="players">👥 Игроки</button>
+            <button class="tab-btn" data-tab="map">🗺️ Карта</button>
+            <button class="tab-btn admin-only" data-tab="manage">⚙️ Управление</button>
+            <button class="tab-btn" id="adminLoginBtn" data-tab="admin">🔐 Admin</button>
+            <button class="tab-btn" id="adminLogoutBtn" onclick="logoutAdmin()">🚪 Выйти</button>
+        </nav>
+
+        <!-- Дашборд -->
+        <div class="tab-content active" id="dashboard">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-value" id="playersCount">-</div>
+                    <div class="stat-label">Игроков онлайн</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-value" id="fps">-</div>
+                    <div class="stat-label">FPS</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-value" id="uptime">-</div>
+                    <div class="stat-label">Uptime</div>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h2>Информация о сервере</h2>
+                <div class="info-item">
+                    <span class="info-label">Название:</span>
+                    <span class="info-value" id="serverName">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Версия:</span>
+                    <span class="info-value" id="serverVersion">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Описание:</span>
+                    <span class="info-value" id="serverDescription">-</span>
+                </div>
+            </div>
+
+            <button class="btn btn-primary" onclick="refreshDashboard()">🔄 Обновить</button>
+        </div>
+
+        <!-- Игроки -->
+        <div class="tab-content" id="players">
+            <div class="players-list" id="playersList">
+                <div class="loading">Загрузка игроков...</div>
+            </div>
+            <button class="btn btn-primary" onclick="refreshPlayers()">🔄 Обновить</button>
+        </div>
+
+        <!-- Карта -->
+        <div class="tab-content" id="map">
+            <div class="map-container">
+                <div class="map-controls">
+                    <button class="btn btn-primary" onclick="refreshMap()">🔄 Обновить</button>
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot player-dot"></span>
+                            <span>Игрок</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="map-wrapper">
+                    <canvas id="mapCanvas"></canvas>
+                    <div class="map-zoom-controls">
+                        <button class="zoom-btn" onclick="zoomIn()" title="Приблизить">+</button>
+                        <button class="zoom-btn" onclick="zoomOut()" title="Отдалить">−</button>
+                    </div>
+                </div>
+                <div class="map-info" id="mapInfo">
+                    <div class="loading">Загрузка карты...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Авторизация администратора -->
+        <div class="tab-content" id="admin">
+            <div class="info-card">
+                <h2>🔐 Вход для администратора</h2>
+                <div class="input-group">
+                    <input type="password" id="adminPassword" placeholder="Введите пароль" autocomplete="off">
+                    <button class="btn btn-primary" onclick="checkAdminPassword()">Войти</button>
+                </div>
+                <div class="error-message" id="adminError" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Управление (только для администратора) -->
+        <div class="tab-content admin-only" id="manage">
+            <div class="manage-section">
+                <h2>📢 Объявления</h2>
+                <div class="input-group">
+                    <textarea id="announceMessage" placeholder="Введите текст объявления..." rows="3"></textarea>
+                    <button class="btn btn-primary" onclick="sendAnnounce()">Отправить</button>
+                </div>
+            </div>
+
+            <div class="manage-section">
+                <h2>💾 Мир</h2>
+                <button class="btn btn-warning" onclick="saveWorld()">Сохранить мир</button>
+            </div>
+
+            <div class="manage-section">
+                <h2>🛑 Управление сервером</h2>
+                <div class="input-group">
+                    <input type="number" id="shutdownWaitTime" placeholder="Время ожидания (сек)" value="10" min="1">
+                    <input type="text" id="shutdownMessage" placeholder="Сообщение для игроков">
+                    <button class="btn btn-danger" onclick="shutdownServer()">Остановить сервер</button>
+                </div>
+                <button class="btn btn-danger" onclick="forceStopServer()">⚠️ Принудительная остановка</button>
+            </div>
+
+            <div class="manage-section">
+                <h2>⏰ Автоматическое выключение</h2>
+                <div class="input-group">
+                    <input type="number" id="autoShutdownMinutes" placeholder="Минут до выключения" value="30" min="1">
+                    <button class="btn btn-primary" id="autoShutdownToggle" onclick="toggleAutoShutdown()">Активировать</button>
+                </div>
+                <div id="autoShutdownStatus" style="margin-top: 10px; padding: 10px; background: #f0f0f0; border-radius: 5px; display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong>Статус:</strong> <span id="autoShutdownStatusText">Неактивно</span><br>
+                            <small id="autoShutdownTimer">Таймер не запущен</small>
+                        </div>
+                        <button class="btn btn-danger" onclick="toggleAutoShutdown()" style="width: auto; padding: 5px 10px; font-size: 12px; white-space: nowrap; flex-shrink: 0; margin-left: 10px; margin-bottom: 0;">Отключить</button>
+                    </div>
+                </div>
+                <p style="margin-top: 10px; font-size: 12px; color: #666;">
+                    Сервер автоматически выключится через указанное время, если на нём не будет игроков.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <script src="/app.js"></script>
+</body>
+</html>
+
