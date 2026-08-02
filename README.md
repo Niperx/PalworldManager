@@ -1,5 +1,5 @@
 # Palworld Telegram Bot
-
+<a href="https://ibb.co/R4s6g8zx"><img src="https://i.ibb.co/QjTHJ0r2/photo-2026-08-02-14-03-10.jpg" alt="photo-2026-08-02-14-03-10" border="0"></a>
 Telegram бот с Mini App для управления сервером Palworld и отображения статистики.
 
 ## Возможности
